@@ -56,8 +56,42 @@ for item in range(1, numobj + 1):
 
 dip.figure("Largest Blob")
 dip.imshow(displayImage, 'gray')
+
+
+bottomright_x = 0
+bottomright_y = 0
+topright_x = 0
+topright_y = 0
+bottomleft_x = 0
+bottomleft_y = 0
+topleft_x = 0
+topleft_y = 0
+BRsum = 0
+TRsum = 0
+BLsum = 0
+TLsum = 0
+imagey, imagex = displayImage.shape
+for y in range(0, imagey):
+    for x in range(0, imagex):
+        if displayImage[y][x]!=0:
+            if x + y > BRsum:
+                BRsum = x + y
+                bottomright_x = x
+                bottomright_y = y
+            if x + imagey - y > TRsum:
+                TRsum = x + imagey - y
+                topright_x = x
+                topright_y = y
+            if imagex - x + imagey - y > TLsum:
+                TLsum = imagex - x + imagey - y
+                topleft_x = x
+                topleft_y = y
+            if imagex - x + y > BLsum:
+                BLsum = imagex - x + y
+                bottomleft_x = x
+                bottomleft_y = y
+print("TL x= "+str(topleft_x)+" y= "+str(topleft_y))
+print("TR x= "+str(topright_x)+" y= "+str(topright_y))
+print("BL x= "+str(bottomleft_x)+" y= "+str(bottomleft_y))
+print("BR x= "+str(bottomright_x)+" y= "+str(bottomright_y))
 dip.show()
-
-
-
-
