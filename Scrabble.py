@@ -2,10 +2,13 @@ import dippykit as dip
 import numpy as np
 import skimage.morphology as morph
 import scipy.ndimage as ndImage
+import skimage.transform as tf
 from skimage.util.dtype import dtype_limits
 image = dip.im_read('images/Board3.png')
 print(image.shape)
 image = dip.rgb2gray(image[:, :, 0:3])
+#image = dip.rgb2gray(image)
+image2 = image
 
 #print(I1.shape)
 conn = np.array([[0, 0, 0, 1, 1, 1, 0, 0, 0],
@@ -94,4 +97,11 @@ print("TL x= "+str(topleft_x)+" y= "+str(topleft_y))
 print("TR x= "+str(topright_x)+" y= "+str(topright_y))
 print("BL x= "+str(bottomleft_x)+" y= "+str(bottomleft_y))
 print("BR x= "+str(bottomright_x)+" y= "+str(bottomright_y))
+dest = np.array([[topleft_x, topleft_y], [bottomleft_x, bottomleft_y], [bottomright_x, bottomright_y], [topright_x, topright_y]])
+src = np.array([[0, 0], [0, 550], [550, 550], [550, 0]])
+tform3 = tf.ProjectiveTransform()
+tform3.estimate(src, dest)
+warped = tf.warp(image2, tform3, output_shape=[550, 550])
+dip.figure("warped")
+dip.imshow(warped, 'gray')
 dip.show()
