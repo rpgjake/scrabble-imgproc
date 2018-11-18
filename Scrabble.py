@@ -23,30 +23,38 @@ def auto_canny(image, sigma=0.33):
 
 
 
-image = dip.im_read('images/Test2.png')
+image = dip.im_read('images/BasicBoard.jpg')
 image = dip.rgb2gray(image[:, :, 0:3])
-image2 = image
+original = image
+original2 = image
+
 
 #print(I1.shape)
 conn = np.array([[0, 0, 0, 1, 1, 1, 0, 0, 0],
-                 [0, 0, 1, 1, 1, 1, 1, 0, 0],
-                 [0, 1, 1, 1, 1, 1, 1, 1, 0],
+                 [0, 0, 0, 1, 1, 1, 0, 0, 0],
+                 [0, 0, 0, 1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1, 1, 1, 1],
                  [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                 [0, 1, 1, 1, 1, 1, 1, 1, 0],
-                 [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                 [0, 0, 0, 1, 1, 1, 0, 0, 0],
+                 [0, 0, 0, 1, 1, 1, 0, 0, 0],
                  [0, 0, 0, 1, 1, 1, 0, 0, 0]])
-conn = np.array([[1, 1],
-                 [1, 1]])
-conn = np.array([[0, 1, 0],
-                 [1, 1, 1],
-                 [0, 1, 0]])
+# conn = np.array([[1, 1],
+#                  [1, 1]])
+# conn = np.array([[0, 1, 0],
+#                  [1, 1, 1],
+#                  [0, 1, 0]])
+# conn = np.array([[0, 0, 1, 1, 0, 0],
+#                  [0, 0, 1, 1, 0, 0],
+#                  [1, 1, 1, 1, 1, 1],
+#                  [1, 1, 1, 1, 1, 1],
+#                  [0, 0, 1, 1, 0, 0],
+#                  [0, 0, 1, 1, 0, 0]])
 
-levels = [#("Gauss", 1),
+levels = [("Gauss", 1.5),
           ("Canny", .4),
-          ("Dilate", conn),
-          ("Gauss", 2)]
+          ("Dilate", conn)]
+          #("Gauss", 2)]
 
 for i in range(0, len(levels)):
     trans, param = levels[i]
@@ -66,9 +74,77 @@ for i in range(0, len(levels)):
         text +=  "      " + str(param)
     dip.figure(text)
     dip.imshow(image, 'gray')
+
+
+lsd = cv2.createLineSegmentDetector(0)
+
+
+lines = lsd.detect(original)[0]
+
+image = np.expand_dims(image, 2)
+image = np.tile(image, (1, 1, 3))
+
+image2 = np.zeros(image.shape, dtype=np.uint8)
+
+for line in lines:
+    for (x1, y1, x2, y2) in line:
+        length = abs(np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2))
+        cv2.line(image2, (x1, y1), (x2, y2), (0, 255, 0), 1)
+image2 = image2[:, :, 1]
+image2 = morph.dilation(image2, selem=conn)
+
+
+
+
+#Draw detected lines in the image
+
+dip.figure("LSD lines")
+dip.imshow(image2, 'gray')
 dip.show()
 
-Labeled, numobj = ndImage.label(image)
+lsd2 = cv2.createLineSegmentDetector(0)
+lines2 = lsd.detect(image2)[0]
+image3 = np.zeros(image.shape, dtype=np.uint8)
+
+original2 = np.expand_dims(original2, 2)
+original2 = np.tile(original2, (1, 1, 3))
+
+for line in lines2:
+    for (x1, y1, x2, y2) in line:
+        length = abs(np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2))
+        cv2.line(original2, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+dip.figure("LSD lines2")
+dip.imshow(original2, 'gray')
+dip.show()
+
+#
+# minLineLength = 150
+# maxLineGap = 20
+# lines = cv2.HoughLinesP(image, 1, np.pi/180/2, 400, minLineLength, maxLineGap)
+# # lines = cv2.HoughLines(image, 1, np.pi/180/2, 500)
+# image = np.expand_dims(image, 2)
+# image = np.tile(image, (1, 1, 3))
+# for line in lines:
+#     for x1, y1, x2, y2 in line:
+#     # for rho, theta in line:
+#     #     a = np.cos(theta)
+#     #     b = np.sin(theta)
+#     #     x0 = a * rho
+#     #     y0 = b * rho
+#     #     x1 = int(x0 + 5000 * (-b))
+#     #     y1 = int(y0 + 5000 * (a))
+#     #     x2 = int(x0 - 5000 * (-b))
+#     #     y2 = int(y0 - 5000 * (a))
+#         cv2.line(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+# dip.figure("Hough lines")
+# dip.imshow(image)
+# dip.show()
+#
+#
+# exit()
+
+Labeled, numobj = ndImage.label(image2)
 lastSum = 0
 displayImage = None
 for item in range(1, numobj + 1):
@@ -119,7 +195,7 @@ scale = 15 * 15 * 20
 src = np.array([[0, 0], [0, scale], [scale, scale], [scale, 0]])
 tform3 = tf.ProjectiveTransform()
 tform3.estimate(src, dest)
-warped = tf.warp(image2, tform3, output_shape=[scale, scale])
+warped = tf.warp(original, tform3, output_shape=[scale, scale])
 dip.figure("warped")
 dip.imshow(warped, 'gray')
 dip.show()
