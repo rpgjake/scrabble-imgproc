@@ -4,7 +4,7 @@ import scipy.ndimage as ndImage
 import skimage.transform as tf
 import cv2
 
-image = dip.im_read('images/Words4.jpg')
+image = dip.im_read('images/Test3.png')
 image = (image[:, :, 2])
 
 x, y = image.shape
