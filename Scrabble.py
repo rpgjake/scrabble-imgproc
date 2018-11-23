@@ -3,6 +3,10 @@ import numpy as np
 import scipy.ndimage as ndImage
 import skimage.transform as tf
 import cv2
+import pytesseract
+import os
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+os.environ['TESSDATA_PREFIX'] = r'C:\Program Files (x86)\Tesseract-OCR\tessdata'
 
 image = dip.im_read('images/Test3.png')
 image = (image[:, :, 2])
@@ -82,7 +86,6 @@ lsd = cv2.createLineSegmentDetector(_refine=cv2.LSD_REFINE_ADV)
 lines = lsd.detect(warped)[0]
 for line in lines:
     for (x1, y1, x2, y2) in line:
-        length = abs(np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2))
         cv2.line(image3, (x1, y1), (x2, y2), 255, 3)
 
 Labeled, numobj = ndImage.label(image3)
@@ -175,24 +178,74 @@ for i in range(6, 50):
             lineRight = (x1, x2)
             bestScoreRight = score
 
-cv2.line(warped, (0, lineTop[0]), (dimY - 1, lineTop[1]), 0, 3)
-cv2.line(warped, (0, lineBot[0]), (dimY - 1, lineBot[1]), 0, 3)
+# cv2.line(warped, (0, lineTop[0]), (dimY - 1, lineTop[1]), 0, 3)
+# cv2.line(warped, (0, lineBot[0]), (dimY - 1, lineBot[1]), 0, 3)
+# cv2.line(warped, (lineLeft[0], 0), (lineLeft[1], dimX - 1), 0, 3)
+# cv2.line(warped, (lineRight[0], 0), (lineRight[1], dimX - 1), 0, 3)
+
 xDiff0 = (lineBot[0] - lineTop[0]) / 15.0
 xDiff1 = (lineBot[1] - lineTop[1]) / 15.0
 yDiff0 = (lineRight[0] - lineLeft[0]) / 15.0
 yDiff1 = (lineRight[1] - lineLeft[1]) / 15.0
-for i in range(1, 15):
-    y1 = int(lineTop[0] + i * xDiff0)
-    y2 = int(lineTop[1] + i * xDiff1)
-    cv2.line(warped, (0, y1), (dimY - 1, y2), 0, 3)
-
-    x1 = int(lineLeft[0] + i * yDiff0)
-    x2 = int(lineLeft[1] + i * yDiff1)
-    cv2.line(warped, (x1, 0), (x2, dimX - 1), 0, 3)
-
-cv2.line(warped, (lineLeft[0], 0), (lineLeft[1], dimX - 1), 0, 3)
-cv2.line(warped, (lineRight[0], 0), (lineRight[1], dimX - 1), 0, 3)
+# for i in range(1, 15):
+#     y1 = int(lineTop[0] + i * xDiff0)
+#     y2 = int(lineTop[1] + i * xDiff1)
+#     cv2.line(warped, (0, y1), (dimY - 1, y2), 0, 3)
+#
+#     x1 = int(lineLeft[0] + i * yDiff0)
+#     x2 = int(lineLeft[1] + i * yDiff1)
+#     cv2.line(warped, (x1, 0), (x2, dimX - 1), 0, 3)
 
 dip.figure("Lined image")
 dip.imshow(warped, 'gray')
-dip.show()
+
+for i in range(0, 15):
+    for j in range(0, 15):
+        amt_i = [i / 15.0, (i + 1) / 15.0]
+        amt_i_inv = [1.0 - i / 15.0, 1.0 - (i + 1) / 15.0]
+        tl_y = int((lineTop[0] + (i + 0) * xDiff0) * amt_i_inv[0] + (lineTop[1] + (i + 0) * xDiff1) * amt_i[0])
+        tr_y = int((lineTop[0] + (i + 0) * xDiff0) * amt_i_inv[1] + (lineTop[1] + (i + 0) * xDiff1) * amt_i[1])
+        bl_y = int((lineTop[0] + (i + 1) * xDiff0) * amt_i_inv[0] + (lineTop[1] + (i + 1) * xDiff1) * amt_i[0])
+        br_y = int((lineTop[0] + (i + 1) * xDiff0) * amt_i_inv[1] + (lineTop[1] + (i + 1) * xDiff1) * amt_i[1])
+
+        amt_j = [j / 15.0, (j + 1) / 15.0]
+        amt_j_inv = [1.0 - j / 15.0, 1.0 - (j + 1) / 15.0]
+        tl_x = int((lineLeft[0] + (j + 0) * yDiff0) * amt_j_inv[0] + (lineLeft[1] + (j + 0) * yDiff1) * amt_j[0])
+        bl_x = int((lineLeft[0] + (j + 0) * yDiff0) * amt_j_inv[1] + (lineLeft[1] + (j + 0) * yDiff1) * amt_j[1])
+        tr_x = int((lineLeft[0] + (j + 1) * yDiff0) * amt_j_inv[0] + (lineLeft[1] + (j + 1) * yDiff1) * amt_j[0])
+        br_x = int((lineLeft[0] + (j + 1) * yDiff0) * amt_j_inv[1] + (lineLeft[1] + (j + 1) * yDiff1) * amt_j[1])
+
+        scale = 80
+        pad = 10
+        total = scale + 2 * pad
+        dest = np.array([[pad, pad], [pad, scale + pad], [scale + pad, scale + pad], [scale + pad, pad]])
+        src = np.array([[tl_x, tl_y], [bl_x, bl_y], [br_x, br_y], [tr_x, tr_y]])
+        tform = tf.ProjectiveTransform()
+        tform.estimate(dest, src)
+        output = tf.warp(warped, tform, output_shape=[total, total])
+        # dip.figure("Square")
+        # dip.imshow(warped[tl_y : bl_y, tl_x : tr_x], 'gray')
+
+        output = (output < 0.4)
+        Labeled, numobj = ndImage.label(output)
+        lastSum = 0
+        closestBlob = None
+        distance = 99
+        for item in range(1, numobj + 1):
+            blob = (Labeled == item)
+            x, y = output.shape
+            for a in range(0, x):
+                for b in range(0, y):
+                    if blob[a, b] != 0:
+                        dist = np.sqrt((a - 50) ** 2 + (b - 50) ** 2)
+                        if dist < distance:
+                            distance = dist
+                            closestBlob = np.logical_not(blob)
+
+        text = pytesseract.image_to_string(closestBlob, config='--oem 0 -c tessedit_char_whitelist=ABCDEFGHIJLKMNOPQRSTUVWXYZ --psm 10')
+        # text = pytesseract.image_to_string(closestBlob) #, config='--oem 0 --psm 10')
+
+        dip.figure("Coordinate:  (" + str(j) + ", " + str(i) + ") is " + text)
+        dip.imshow(closestBlob, 'gray')
+        dip.show()
+
