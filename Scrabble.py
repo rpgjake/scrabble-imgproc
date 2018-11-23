@@ -195,11 +195,14 @@ yDiff1 = (lineRight[1] - lineLeft[1]) / 15.0
 #     x1 = int(lineLeft[0] + i * yDiff0)
 #     x2 = int(lineLeft[1] + i * yDiff1)
 #     cv2.line(warped, (x1, 0), (x2, dimX - 1), 0, 3)
+#
+# dip.figure("Lined image")
+# dip.imshow(warped, 'gray')
 
-dip.figure("Lined image")
-dip.imshow(warped, 'gray')
+grid = []
 
 for i in range(0, 15):
+    grid.append([])
     for j in range(0, 15):
         amt_i = [i / 15.0, (i + 1) / 15.0]
         amt_i_inv = [1.0 - i / 15.0, 1.0 - (i + 1) / 15.0]
@@ -226,26 +229,48 @@ for i in range(0, 15):
         # dip.figure("Square")
         # dip.imshow(warped[tl_y : bl_y, tl_x : tr_x], 'gray')
 
-        output = (output < 0.4)
-        Labeled, numobj = ndImage.label(output)
+        outputBinary = (output < 0.45)
+        Labeled, numobj = ndImage.label(outputBinary)
         lastSum = 0
         closestBlob = None
-        distance = 99
+        distance = 20
+        bigTot = 9999
         for item in range(1, numobj + 1):
-            blob = (Labeled == item)
+            blob = (Labeled != item)
             x, y = output.shape
             for a in range(0, x):
                 for b in range(0, y):
-                    if blob[a, b] != 0:
+                    if blob[a, b] == 0:
                         dist = np.sqrt((a - 50) ** 2 + (b - 50) ** 2)
-                        if dist < distance:
-                            distance = dist
-                            closestBlob = np.logical_not(blob)
+                        tot = np.sum(blob)
+                        if dist < distance and tot > 9000 and tot < bigTot:
+                            # distance = dist
+                            bigTot = tot
+                            closestBlob = blob
+        text = "?"
+        tot = -1
+        if closestBlob is not None:
+            tot = np.sum(closestBlob)
+            closestBlob = closestBlob.astype(np.uint8)
+            closestBlob *= 255
+            text = pytesseract.image_to_string(closestBlob, config='--oem 0 -c tessedit_char_whitelist=ABCDEFGHIJLKMNOPQRSTUVWXYZ|01l --psm 10')
+            text = text.replace("|", "I").replace("1", "I").replace("l", "I").replace("0", "O")
 
-        text = pytesseract.image_to_string(closestBlob, config='--oem 0 -c tessedit_char_whitelist=ABCDEFGHIJLKMNOPQRSTUVWXYZ --psm 10')
+            # dip.figure("Coordinate:  (" + str(j) + ", " + str(i) + ") is " + text + " with total " + str(tot))
+            # dip.imshow(closestBlob, 'gray')
+            # dip.show()
+
+        blacklist = [(13, 6), (6, 7), (4, 8), (12, 9), (13, 9), (14, 13)]
+        if (j, i) in blacklist:
+            dip.figure("Blacklist:  " + text + " from " + str((j, i)))
+            dip.imshow(output)
+            dip.figure("Labeled")
+            dip.imshow(Labeled)
+            dip.show()
         # text = pytesseract.image_to_string(closestBlob) #, config='--oem 0 --psm 10')
-
-        dip.figure("Coordinate:  (" + str(j) + ", " + str(i) + ") is " + text)
-        dip.imshow(closestBlob, 'gray')
-        dip.show()
-
+        grid[-1].append(text)
+        # dip.figure("Coordinate:  (" + str(j) + ", " + str(i) + ") is " + text)
+        # dip.imshow(closestBlob, 'gray')
+        # dip.show()
+for a in grid:
+    print([b for b in a])
