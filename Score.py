@@ -48,57 +48,99 @@ board = np.array(
          ['T', '.', '.', 'd', '.', '.', '.', 'T', '.', '.', '.', 'd', '.', '.', 'T']])
 
 def score(before, after):
-    testTiles = np.logical_not(np.equal(before, after))
-    testTiles = np.logical_and(testTiles, (before == '?'))
-    testRow = -1
-    rowCount = 0
-    testCol = -1
-    colCount = 0
-    for i in range(0, 15):
-        testCount = np.count_nonzero(testTiles[i].astype(np.uint8))
-        if testCount > rowCount:
-            testRow = i
-            rowCount = testCount
-        testCount = np.count_nonzero(testTiles[:, i].astype(np.uint8))
-        if testCount > colCount:
-            testCol = i
-            colCount = testCount
-    words = []
-    if rowCount > colCount:
-        indices = []
-        for i in range(0, 15):
-            if testTiles[testRow, i]:
-                indices.append((testRow, i))
+    letterBoard = after
+    before = np.array(before, dtype=np.character).view(np.uint8)
+    after = np.array(after, dtype=np.character).view(np.uint8)
+    testTiles = np.logical_not(before == after)
+    testTiles = np.logical_and(testTiles, (before == ord('?')))
+    print("Comparing:")
+    print(testTiles)
+    # testRow = -1
+    # rowCount = 0
+    # testCol = -1
+    # colCount = 0
+    # for i in range(0, 15):
+    #     testCount = np.count_nonzero(testTiles[i].astype(np.uint8))
+    #     if testCount > rowCount:
+    #         testRow = i
+    #         rowCount = testCount
+    #     testCount = np.count_nonzero(testTiles[:, i].astype(np.uint8))
+    #     if testCount > colCount:
+    #         testCol = i
+    #         colCount = testCount
+    # print(rowCount)
+    # print(colCount)
 
-                # Get list of new words
-                newIndices = []
-                for j in range(testRow, 15):
-                    if testTiles[j, i]:
-                        newIndices.append((j, i))
-                    else:
-                        break
-                for j in range(testRow, -1, -1):
-                    if testTiles[j, i]:
-                        newIndices.append((j, i))
-                    else:
-                        break
-                if len(newIndices) > 1:
-                    words.append(newIndices)
-        words.append(indices)
+    newLetters = []
+    for i in range(0, 15):
+        for j in range(0, 15):
+            index = (i, j)
+            if testTiles[index]:
+                newLetters.append(index)
+
+    potentialWords = []
+    for (i, j) in newLetters:
+        lowI = i
+        while lowI > 0 and letterBoard[lowI - 1][j] != '?':
+            lowI -= 1
+        highI = i
+        while highI < 15 and letterBoard[highI][j] != '?':
+            highI += 1
+        if highI - lowI > 1:
+            newWord = []
+            for newI in range(lowI, highI):
+                newWord.append((newI, j))
+            potentialWords.append(newWord)
+
+        lowJ = j
+        while lowJ > 0 and letterBoard[i][lowJ - 1] != '?':
+            lowJ -= 1
+        highJ = i
+        while highJ < 15 and letterBoard[i][highJ] != '?':
+            highJ += 1
+        if highJ - lowJ > 1:
+            newWord = []
+            for newI in range(lowJ, highJ):
+                newWord.append((i, highJ))
+            potentialWords.append(newWord)
+
+    # Prune out duplicates in potential words
+    words = []
+    for potentialWord in potentialWords:
+        # Flag to see if new word is already in list
+        outerFlag = True
+        for word in words:
+            # Flag to compare new word to each word
+            flag = True
+            for letter in newWord:
+                flag &= (letter in word)
+            if flag:
+                outerFlag = False
+        # If flag is false, then the word already exists
+        if outerFlag:
+            words.append(newWord)
+
+    print(words)
+
     score = 0
     for word in words:
         wordScore = 0
         multiplier = 1
-        for index in word:
-            if index in words[0]:
-                if board[index] == 'd':
-                    wordScore += 2 * letterScore[after[index]]
-                elif board[index] == 't':
-                    wordScore += 3 * letterScore[after[index]]
-                elif board[index] == 'D':
+        for (i, j) in word:
+            if (i, j) in newLetters:
+                if board[i][j] == 'd':
+                    wordScore += 2 * letterScore[letterBoard[i][j]]
+                elif board[i][j] == 't':
+                    wordScore += 3 * letterScore[letterBoard[i][j]]
+                else:
+                    wordScore += letterScore[letterBoard[i][j]]
+
+                if board[i][j] == 'D':
                     multiplier *= 2
-                elif board[index] == 'T':
+                elif board[i][j] == 'T':
                     multiplier *= 3
+            else:
+                wordScore += letterScore[letterBoard[i][j]]
         wordScore *= multiplier
         score += wordScore
     return score
