@@ -53,23 +53,6 @@ def score(before, after):
     after = np.array(after, dtype=np.character).view(np.uint8)
     testTiles = np.logical_not(before == after)
     testTiles = np.logical_and(testTiles, (before == ord('?')))
-    print("Comparing:")
-    print(testTiles)
-    # testRow = -1
-    # rowCount = 0
-    # testCol = -1
-    # colCount = 0
-    # for i in range(0, 15):
-    #     testCount = np.count_nonzero(testTiles[i].astype(np.uint8))
-    #     if testCount > rowCount:
-    #         testRow = i
-    #         rowCount = testCount
-    #     testCount = np.count_nonzero(testTiles[:, i].astype(np.uint8))
-    #     if testCount > colCount:
-    #         testCol = i
-    #         colCount = testCount
-    # print(rowCount)
-    # print(colCount)
 
     newLetters = []
     for i in range(0, 15):
@@ -95,15 +78,14 @@ def score(before, after):
         lowJ = j
         while lowJ > 0 and letterBoard[i][lowJ - 1] != '?':
             lowJ -= 1
-        highJ = i
+        highJ = j
         while highJ < 15 and letterBoard[i][highJ] != '?':
             highJ += 1
         if highJ - lowJ > 1:
             newWord = []
-            for newI in range(lowJ, highJ):
-                newWord.append((i, highJ))
+            for newJ in range(lowJ, highJ):
+                newWord.append((i, newJ))
             potentialWords.append(newWord)
-
     # Prune out duplicates in potential words
     words = []
     for potentialWord in potentialWords:
@@ -112,15 +94,13 @@ def score(before, after):
         for word in words:
             # Flag to compare new word to each word
             flag = True
-            for letter in newWord:
+            for letter in potentialWord:
                 flag &= (letter in word)
             if flag:
                 outerFlag = False
         # If flag is false, then the word already exists
         if outerFlag:
-            words.append(newWord)
-
-    print(words)
+            words.append(potentialWord)
 
     score = 0
     for word in words:
